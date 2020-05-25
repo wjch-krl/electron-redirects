@@ -1,6 +1,7 @@
 // Modules to control application life and create native browser window
 const {app, BrowserWindow} = require('electron')
 const path = require('path')
+const axios = require('axios')
 
 function createWindow () {
   // Create the browser window.
@@ -13,10 +14,35 @@ function createWindow () {
   })
 
   // and load the index.html of the app.
-  mainWindow.loadFile('index.html')
-
+  mainWindow.loadURL("http://google.com")
+  mainWindow.webContents.session.protocol.interceptStreamProtocol('http', handleHttp)
+  mainWindow.webContents.session.protocol.interceptStreamProtocol('https', handleHttp)
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
+}
+
+function handleHttp(request, callback){
+  axios[request.method.toLowerCase()](request.url,
+    {
+        responseType: "stream",
+        headers: request.headers,
+        maxRedirects: 0,
+    }).then((response) => {
+        const resp = {
+            statusCode: response.status,
+            headers: response.headers,
+            data: response.data,
+        };
+        callback(resp);
+    }).catch((err) => {
+        const resp = {
+            statusCode: err.response.status,
+            headers: err.response.headers,
+            data: err.response.data,
+        };
+        callback(resp);
+    });
+
 }
 
 // This method will be called when Electron has finished
